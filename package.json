@@ -1,0 +1,35 @@
+{
+  "name": "mountain-dev-delete-database-action",
+  "version": "1.0.0",
+  "description": "Mountain Dev action to delete preview database on PR close",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/deleteDatabase.ts -o dist",
+    "test": "jest",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [
+    "mountain-dev",
+    "action",
+    "database",
+    "cleanup"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vercel/ncc": "^0.36.1",
+    "typescript": "^4.9.5",
+    "@typescript-eslint/parser": "^5.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^27.0.0",
+    "@types/jest": "^27.0.0",
+    "ts-jest": "^27.0.0"
+  }
+}

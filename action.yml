@@ -1,0 +1,9 @@
+name: Delete Preview Database
+on:
+  pull_request:
+    types: [closed]
+
+action:
+  uses: ./dist/index.js
+  env:
+    DOTENV_ME: ${{ secrets.DOTENV_ME }}
