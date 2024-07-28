@@ -1,9 +1,16 @@
 name: Delete Preview Database
+description: "Cleans up preview databases created for preview branches"
 on:
   pull_request:
     types: [closed]
 
-action:
-  uses: ./dist/index.js
-  env:
-    DOTENV_ME: ${{ secrets.DOTENV_ME }}
+inputs:
+  github-token:
+    description: "GitHub token"
+    required: true
+  dotenv-me:
+    description: "DOTENV_ME secret"
+    required: true
+runs:
+  using: "node20"
+  main: "dist/index.js"

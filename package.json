@@ -4,7 +4,7 @@
   "description": "Mountain Dev action to delete preview database on PR close",
   "main": "dist/index.js",
   "scripts": {
-    "build": "ncc build src/deleteDatabase.ts -o dist",
+    "build": "ncc build src/main.ts -o dist",
     "test": "jest",
     "lint": "eslint . --ext .ts"
   },
@@ -18,7 +18,6 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.10.0",
-    "@actions/exec": "^1.1.1",
     "@actions/github": "^5.1.1"
   },
   "devDependencies": {
