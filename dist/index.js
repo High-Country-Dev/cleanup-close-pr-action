@@ -32630,7 +32630,7 @@ async function run() {
     try {
         // Check for DOTENV_ME
         const githubToken = (_a = process.env.GITHUB_TOKEN) !== null && _a !== void 0 ? _a : core.getInput("github-token", { required: true });
-        const dotenvMe = (_b = process.env.DOTENV_ME) !== null && _b !== void 0 ? _b : core.getInput("dotenv-me", { required: true });
+        const dopplerToken = (_b = process.env.DOPPLER_TOKEN) !== null && _b !== void 0 ? _b : core.getInput("doppler-token", { required: true });
         const prNumber = process.env.PR_NUMBER; // or null
         const octokit = github.getOctokit(githubToken);
         const context = github.context;
@@ -32652,18 +32652,22 @@ async function run() {
             return;
         }
         console.log("currentPR:", currentPR.number);
-        if (!dotenvMe) {
-            core.setFailed("DOTENV_ME is not set. Exiting.");
+        if (!dopplerToken) {
+            core.setFailed("Doppler token is not set. Exiting.");
             return;
         }
-        process.env.DOTENV_ME = dotenvMe;
+        process.env.DOPPLER_TOKEN = dopplerToken;
         // Install PostgreSQL client (this might need to be handled differently in Mountain Dev actions)
         // For now, we'll assume it's installed or handle it separately
         // Get CI DOTENV_KEY and extract DATABASE_URL
         let databaseUrl = "";
-        const { stdout: ciKeyOut } = await execAsync(`npx dotenv-vault keys ci`);
-        const ciKey = ciKeyOut.trim();
-        const { stdout: decryptedOut } = await execAsync(`npx dotenv-vault decrypt "${ciKey}"`);
+        const command = `curl --get \
+    --url 'https://api.doppler.com/v3/configs/config/secrets/download' \
+    --header 'authorization: Bearer ${dopplerToken}' \
+    --data-urlencode 'project=${repo.repo}' \
+    --data-urlencode 'config=dev' \
+    --data-urlencode 'format=env'`;
+        const { stdout: decryptedOut } = await execAsync(command);
         const match = decryptedOut.match(/^DATABASE_URL=(.*)$/m);
         if (match) {
             databaseUrl = match[1].replace(/^'|'$|^"|"$/g, "");
@@ -32684,7 +32688,7 @@ async function run() {
         }
         console.log("Safety check pass");
         // Parse the DATABASE_URL
-        const { dbUser, dbPassword, dbHost, dbPort, dbName: dbDatabase, } = parseDbUrl(databaseUrl);
+        const { dbUser, dbPassword, dbHost, dbPort, dbName: dbDatabase, } = parseDbUrl(dbName);
         console.log({
             dbName,
             dbUser,

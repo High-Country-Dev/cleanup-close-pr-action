@@ -8,8 +8,8 @@ inputs:
   github-token:
     description: "GitHub token"
     required: true
-  dotenv-me:
-    description: "DOTENV_ME secret"
+  doppler-token:
+    description: "Doppler token"
     required: true
 runs:
   using: "node20"

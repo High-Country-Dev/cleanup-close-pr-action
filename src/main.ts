@@ -41,8 +41,9 @@ async function run(): Promise<void> {
     const githubToken =
       process.env.GITHUB_TOKEN ??
       core.getInput("github-token", { required: true });
-    const dotenvMe =
-      process.env.DOTENV_ME ?? core.getInput("dotenv-me", { required: true });
+    const dopplerToken =
+      process.env.DOPPLER_TOKEN ??
+      core.getInput("doppler-token", { required: true });
     const prNumber = process.env.PR_NUMBER; // or null
 
     const octokit = github.getOctokit(githubToken);
@@ -67,25 +68,26 @@ async function run(): Promise<void> {
 
     console.log("currentPR:", currentPR.number);
 
-    if (!dotenvMe) {
-      core.setFailed("DOTENV_ME is not set. Exiting.");
+    if (!dopplerToken) {
+      core.setFailed("Doppler token is not set. Exiting.");
       return;
     }
 
-    process.env.DOTENV_ME = dotenvMe;
+    process.env.DOPPLER_TOKEN = dopplerToken;
 
     // Install PostgreSQL client (this might need to be handled differently in Mountain Dev actions)
     // For now, we'll assume it's installed or handle it separately
 
     // Get CI DOTENV_KEY and extract DATABASE_URL
     let databaseUrl = "";
-    const { stdout: ciKeyOut } = await execAsync(`npx dotenv-vault keys ci`);
 
-    const ciKey = ciKeyOut.trim();
-
-    const { stdout: decryptedOut } = await execAsync(
-      `npx dotenv-vault decrypt "${ciKey}"`
-    );
+    const command = `curl --get \
+    --url 'https://api.doppler.com/v3/configs/config/secrets/download' \
+    --header 'authorization: Bearer ${dopplerToken}' \
+    --data-urlencode 'project=${repo.repo}' \
+    --data-urlencode 'config=dev' \
+    --data-urlencode 'format=env'`;
+    const { stdout: decryptedOut } = await execAsync(command);
 
     const match = decryptedOut.match(/^DATABASE_URL=(.*)$/m);
     if (match) {
@@ -122,7 +124,7 @@ async function run(): Promise<void> {
       dbHost,
       dbPort,
       dbName: dbDatabase,
-    } = parseDbUrl(databaseUrl);
+    } = parseDbUrl(dbName);
 
     console.log({
       dbName,
