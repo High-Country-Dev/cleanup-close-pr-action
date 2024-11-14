@@ -1,6 +1,5 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -13,14 +12,31 @@ interface PullRequest {
   head: { ref: string };
 }
 
-function parseDbUrl(url: string) {
+interface DbConfig {
+  dbUser: string;
+  dbPassword: string;
+  dbHost: string;
+  dbPort: string;
+  dbName: string;
+  dbType: "postgres" | "mysql";
+}
+
+function parseDbUrl(url: string): DbConfig {
   // Regular expression to parse the URL
   console.log("parseDbUrl:", url);
-  const regex = /^postgres:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
-  const match = url.match(regex);
-
+  const postgresRegex = /^postgres:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
+  const mysqlRegex = /^mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
+  
+  let match = url.match(postgresRegex);
+  let dbType: "postgres" | "mysql" = "postgres";
+  
   if (!match) {
-    throw new Error("Invalid database URL format");
+    match = url.match(mysqlRegex);
+    dbType = "mysql";
+    
+    if (!match) {
+      throw new Error("Invalid database URL format");
+    }
   }
 
   const [, dbUser, dbPassword, dbHost, dbPort, dbName] = match;
@@ -31,6 +47,7 @@ function parseDbUrl(url: string) {
     dbHost,
     dbPort,
     dbName,
+    dbType
   };
   return data;
 }
@@ -124,8 +141,9 @@ async function run(): Promise<void> {
       dbHost,
       dbPort,
       dbName: dbDatabase,
+      dbType
     } = parseDbUrl(dbName);
-
+    
     console.log({
       dbName,
       dbUser,
@@ -136,12 +154,17 @@ async function run(): Promise<void> {
     });
 
     // Delete the database
-    const psqlCommand = `DROP DATABASE IF EXISTS ${dbDatabase}`;
+    const dropCommand = `DROP DATABASE IF EXISTS ${dbDatabase}`;
     process.env.PGPASSWORD = dbPassword;
-
-    await execAsync(
-      `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -c "${psqlCommand}"`
-    );
+    if (dbType === "postgres") {
+      await execAsync(
+        `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -c "${dropCommand}"`
+      );
+    } else {
+      await execAsync(
+        `mysql -h ${dbHost} -P ${dbPort} -u ${dbUser} -p${dbPassword} -e "${dropCommand}"`
+      );
+    }
 
     console.log(`Database ${dbName} deleted (if it existed)`);
   } catch (error) {
