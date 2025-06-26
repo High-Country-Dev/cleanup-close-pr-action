@@ -31880,7 +31880,7 @@ function parseDbUrl(url) {
         dbHost,
         dbPort,
         dbName,
-        dbType
+        dbType,
     };
     return data;
 }
@@ -31945,9 +31945,13 @@ async function run() {
         if (/_(dev|staging|prod)$/.test(dbName)) {
             throw new Error(`Error: Attempting to drop a protected database (${dbName}). Operation aborted.`);
         }
+        // Safety check for preview databases
+        if (!/_preview$/.test(dbName)) {
+            throw new Error(`Error: Attempting to drop a non-preview database (${dbName}). Database must end with _preview. Operation aborted.`);
+        }
         console.log("Safety check pass");
         // Parse the DATABASE_URL
-        const { dbUser, dbPassword, dbHost, dbPort, dbName: dbDatabase, dbType } = parseDbUrl(dbName);
+        const { dbUser, dbPassword, dbHost, dbPort, dbName: dbDatabase, dbType, } = parseDbUrl(dbName);
         console.log({
             dbName,
             dbUser,
@@ -31962,8 +31966,11 @@ async function run() {
         if (dbType === "postgres") {
             await execAsync(`psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -c "${dropCommand}"`);
         }
-        else {
+        else if (dbType === "mysql") {
             await execAsync(`mysql -h ${dbHost} -P ${dbPort} -u ${dbUser} -p${dbPassword} -e "${dropCommand}"`);
+        }
+        else {
+            throw new Error(`Unsupported database type: ${dbType}`);
         }
         console.log(`Database ${dbName} deleted (if it existed)`);
     }

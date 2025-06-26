@@ -26,14 +26,14 @@ function parseDbUrl(url: string): DbConfig {
   console.log("parseDbUrl:", url);
   const postgresRegex = /^postgres:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
   const mysqlRegex = /^mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
-  
+
   let match = url.match(postgresRegex);
   let dbType: "postgres" | "mysql" = "postgres";
-  
+
   if (!match) {
     match = url.match(mysqlRegex);
     dbType = "mysql";
-    
+
     if (!match) {
       throw new Error("Invalid database URL format");
     }
@@ -47,7 +47,7 @@ function parseDbUrl(url: string): DbConfig {
     dbHost,
     dbPort,
     dbName,
-    dbType
+    dbType,
   };
   return data;
 }
@@ -132,6 +132,13 @@ async function run(): Promise<void> {
       );
     }
 
+    // Safety check for preview databases
+    if (!/_preview$/.test(dbName)) {
+      throw new Error(
+        `Error: Attempting to drop a non-preview database (${dbName}). Database must end with _preview. Operation aborted.`
+      );
+    }
+
     console.log("Safety check pass");
 
     // Parse the DATABASE_URL
@@ -141,9 +148,9 @@ async function run(): Promise<void> {
       dbHost,
       dbPort,
       dbName: dbDatabase,
-      dbType
+      dbType,
     } = parseDbUrl(dbName);
-    
+
     console.log({
       dbName,
       dbUser,
@@ -160,10 +167,12 @@ async function run(): Promise<void> {
       await execAsync(
         `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -c "${dropCommand}"`
       );
-    } else {
+    } else if (dbType === "mysql") {
       await execAsync(
         `mysql -h ${dbHost} -P ${dbPort} -u ${dbUser} -p${dbPassword} -e "${dropCommand}"`
       );
+    } else {
+      throw new Error(`Unsupported database type: ${dbType}`);
     }
 
     console.log(`Database ${dbName} deleted (if it existed)`);
